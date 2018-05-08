@@ -2,10 +2,28 @@ import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+def chk_DB():
+    engine = sqlalchemy.create_engine('sqlite:///123.db', pool_recycle=7200, echo=False)
+    try:
+        result = engine.execute("select * from users")
+    except sqlalchemy.exc.OperationalError:
+        create_DB()
+
+def create_DB():
+    engine = sqlalchemy.create_engine('sqlite:///123.db', pool_recycle=7200, echo=False)
+    #     создаем таблицу users
+    metadata = sqlalchemy.MetaData()
+    users_table = sqlalchemy.Table('users', metadata,
+                                   sqlalchemy.Column('id', sqlalchemy.Integer, primary_key=True),
+                                   sqlalchemy.Column('name', sqlalchemy.String(25)),
+                                   sqlalchemy.Column('password', sqlalchemy.String(25))
+                                   )
+    metadata.create_all(engine)
 
 
+chk_DB()
 def create_session_DB():
-    engine = sqlalchemy.create_engine('sqlite:///123.db', pool_recycle=7200, echo=True)
+    engine = sqlalchemy.create_engine('sqlite:///123.db', pool_recycle=7200, echo=False)
     Base = declarative_base()
     Session = sessionmaker(bind=engine)
     session = Session()

@@ -15,9 +15,11 @@ from decorators import Log
 logger = logging.getLogger('client')
 log = Log(logger)
 
+class User:
+    def __init__(self):
+        self.login = input('Enter your login ')
+        self.password = input('Enter your password ')
 
-user_name = input('Введите имя пользователя: ')
-messages = Message(user_name)
 class WriteThread(Thread):
     def __init__(self):
         super().__init__()
@@ -103,6 +105,9 @@ def send_online(conn):
     a = chk_responce(resp)
     return a
 
+
+user = User()
+messages = Message(user.login, user.password)
 conn = connect(IP, PORT)
 send_presence(conn)
 

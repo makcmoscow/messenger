@@ -3,6 +3,7 @@ import select
 import json
 import time
 from threading import Thread
+import alchemy
 
 # IP = '127.0.0.1'
 # IP = input('Введите IP: ')
@@ -59,6 +60,7 @@ class ReadMessages(Thread):
                 else:
                     if mess is not None:
                         name_from, name_to = get_names(mess)
+                        print('имя от кого ', name_from)
                         if name_from:
                             named_sockets[writer] = name_from
                             # print(named_sockets)
@@ -73,28 +75,56 @@ class WriteMessages(Thread):
         global messages
         while True:
             for reader in chk.readers:
-                name_to = get_name_socket(reader)
                 for message in messages:
-                    if message.name_to is None and message.name_from == reader:
-                        # Probably it is presence
-                        responce = {'responce': 200,
-                                    'time': time.time()
-                                    }
-                        # print('responce sended')
-
-                        if send_message(responce, reader):
-                            messages.remove(message)
-                        # readers.remove(reader)
-
-
-                    elif message.name_to is not None and message.name_to == name_to:
-                        # print(message.name_to)
-
-                        if send_message(message.message, reader):  # Тут должна быть функция, подготавливающая сообщение перед отправкой
+                    if chk_presence(message):
+                        login, password = get_username_pass(message)
+                        alchemy.chk_DB()
+                        chk_uexist_DB(login, password)
+                        responce = create_responce(message, login)
+                        send_message(responce, reader)
+                        messages.remove(message)
+                    if chk_msg(message):
+                        if named_sockets[reader] == message.name_to:
+                            send_message(message.message, reader)
                             messages.remove(message)
 
+def chk_msg(message):
+    if message.message['action'] == 'msg':
+        a = True
+    else:
+        a = False
+    return a
 
+def get_username_pass(message):
+    login = message.message['user']['account_name']
+    password = message.message['user']['password']
+    return login, password
 
+def create_responce(message, login):
+    responce = {'responce': 200,
+                'time': time.time(),
+                'to': login
+                    }
+    return responce
+
+def chk_presence(message):
+    if message.message['action'] == 'presence':
+        a = True
+    else:
+        a = False
+    return a
+
+def chk_uexist_DB(login, password):
+    user = alchemy.User_DB(login, password)
+    q_user = alchemy.session.query(alchemy.User_DB).filter_by(name=user.name).first()
+    if q_user:
+        print('this user already in database')
+    elif user.password:
+        alchemy.session.add(user)
+    else:
+        print('you forget to enter your password')
+    alchemy.session.commit()
+# Потом нужно послать респонсе (отсюда, и стереть из потока)
 
 
 def get_name_socket(socket):

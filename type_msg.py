@@ -1,8 +1,9 @@
 from time import ctime
 
 class Message:
-    def __init__(self, login):
+    def __init__(self, login, password):
         self.login = login
+        self.password = password
 
     def f_presence(self):
         presence = {
@@ -11,6 +12,7 @@ class Message:
             'type': 'status',
             'user': {
                 'account_name': self.login,
+                'password': self.password,
                 'status': 'OK'
             }
         }
