@@ -83,6 +83,7 @@ class WriteMessages(Thread):
         global messages
         while True:
             for reader in chk.readers:
+
                 for message in messages:
                     if chk_presence(message):
                         login, password = get_username_pass(message)
@@ -91,18 +92,24 @@ class WriteMessages(Thread):
                         responce = create_responce(message, login)
                         send_message(responce, reader)
                         messages.remove(message)
+                        message = None
                     if chk_msg(message):
+                        # print('named_sockets[reader]', named_sockets[reader])
+                        # print('message.name_to', message.name_to)
                         if named_sockets[reader] == message.name_to:
                             send_message(message.message, reader)
                             messages.remove(message)
+                            message = None
+
 
 
 def chk_msg(message):
-    if message.message['action'] == 'msg':
-        a = True
-    else:
-        a = False
-    return a
+    if message:
+        if message.message['action'] == 'msg':
+            a = True
+        else:
+            a = False
+        return a
 
 
 def get_username_pass(message):
@@ -120,11 +127,12 @@ def create_responce(message, login):
 
 
 def chk_presence(message):
-    if message.message['action'] == 'presence':
-        a = True
-    else:
-        a = False
-    return a
+    if message:
+        if message.message['action'] == 'presence':
+            a = True
+        else:
+            a = False
+        return a
 
 
 def get_name_socket(socket):
