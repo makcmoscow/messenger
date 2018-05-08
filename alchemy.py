@@ -57,7 +57,16 @@ class Friends_DB(Base):
     def __repr__(self):
         return "<Пользователь {} будет являться другом {}".format(self.friend_id, self.user_id)
 
-
+def chk_uexist_DB(login, password):
+    user = User_DB(login, password)
+    q_user = session.query(User_DB).filter_by(name=user.name).first()
+    if q_user:
+        print('this user already in database')
+    elif user.password:
+        session.add(user)
+    else:
+        print('you forget to enter your password')
+    session.commit()
 
 
 if __name__ == '__main__':
@@ -72,3 +81,4 @@ if __name__ == '__main__':
     else:
         print('you forget to enter your password')
     session.commit()
+

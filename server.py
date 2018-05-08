@@ -26,11 +26,14 @@ named_sockets = {}
 writers = []
 readers = []
 
+
 class ChkClients(Thread):
+
     def __init__(self):
         super().__init__()
         self.readers = []
         self.writers = []
+
     def run(self):
         while True:
             try:
@@ -44,7 +47,10 @@ class ChkClients(Thread):
                     self.writers, self.readers, self.errors = select.select(all_clients, all_clients, [])
                 except:
                     pass
+
+
 class ReadMessages(Thread):
+
     def __init__(self):
         super().__init__()
 
@@ -67,7 +73,9 @@ class ReadMessages(Thread):
                             message = Message(writer, name_from, name_to, mess)
                             messages.append(message)
 
+
 class WriteMessages(Thread):
+
     def __init__(self):
         super().__init__()
 
@@ -79,7 +87,7 @@ class WriteMessages(Thread):
                     if chk_presence(message):
                         login, password = get_username_pass(message)
                         alchemy.chk_DB()
-                        chk_uexist_DB(login, password)
+                        alchemy.chk_uexist_DB(login, password)
                         responce = create_responce(message, login)
                         send_message(responce, reader)
                         messages.remove(message)
@@ -88,6 +96,7 @@ class WriteMessages(Thread):
                             send_message(message.message, reader)
                             messages.remove(message)
 
+
 def chk_msg(message):
     if message.message['action'] == 'msg':
         a = True
@@ -95,17 +104,20 @@ def chk_msg(message):
         a = False
     return a
 
+
 def get_username_pass(message):
     login = message.message['user']['account_name']
     password = message.message['user']['password']
     return login, password
 
+
 def create_responce(message, login):
     responce = {'responce': 200,
                 'time': time.time(),
                 'to': login
-                    }
+                }
     return responce
+
 
 def chk_presence(message):
     if message.message['action'] == 'presence':
@@ -113,18 +125,6 @@ def chk_presence(message):
     else:
         a = False
     return a
-
-def chk_uexist_DB(login, password):
-    user = alchemy.User_DB(login, password)
-    q_user = alchemy.session.query(alchemy.User_DB).filter_by(name=user.name).first()
-    if q_user:
-        print('this user already in database')
-    elif user.password:
-        alchemy.session.add(user)
-    else:
-        print('you forget to enter your password')
-    alchemy.session.commit()
-# Потом нужно послать респонсе (отсюда, и стереть из потока)
 
 
 def get_name_socket(socket):
@@ -135,6 +135,7 @@ def lookup(mess):
     if 'user' in mess:
         return mess['user'].get('account_name')
     return mess.get('from')
+
 
 def get_names(mess):
     name_from = None
