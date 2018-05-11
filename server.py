@@ -6,25 +6,28 @@ from threading import Thread
 import alchemy
 
 # IP = '127.0.0.1'
-# IP = input('Введите IP: ')
 
-def get_IP():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    return (s.getsockname()[0])
-IP = get_IP()
-print('IP адрес сервера: ', IP)
-PORT = 7777
-serv_sock = socket.socket(family=socket.AF_INET, type = socket.SOCK_STREAM, proto=0)
-serv_sock.setblocking(0)
-serv_sock.bind((IP, PORT))
-serv_sock.listen(5)
-serv_sock.settimeout(0.2)
 all_clients = []
 messages = []
 named_sockets = {}
 writers = []
 readers = []
+
+def get_IP():
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    return (s.getsockname()[0])
+
+
+def create_serv_sock():
+    PORT = 7777
+    serv_sock = socket.socket(family=socket.AF_INET, type = socket.SOCK_STREAM, proto=0)
+    serv_sock.setblocking(0)
+    serv_sock.bind((IP, PORT))
+    serv_sock.listen(5)
+    serv_sock.settimeout(0.2)
+    return serv_sock
+
 
 
 class ChkClients(Thread):
@@ -37,16 +40,15 @@ class ChkClients(Thread):
     def run(self):
         while True:
             try:
-                conn, addr = serv_sock.accept()
+                conn, addr = create_serv_sock().accept()
             except OSError:
                 pass
             else:
                 all_clients.append(conn)
             finally:
-                try:
+                if all_clients:
                     self.writers, self.readers, self.errors = select.select(all_clients, all_clients, [])
-                except:
-                    pass
+
 
 
 class ReadMessages(Thread):
@@ -93,13 +95,10 @@ class WriteMessages(Thread):
                         send_message(responce, reader)
                         messages.remove(message)
                         message = None
-                    if chk_msg(message):
-                        # print('named_sockets[reader]', named_sockets[reader])
-                        # print('message.name_to', message.name_to)
-                        if named_sockets[reader] == message.name_to:
-                            send_message(message.message, reader)
-                            messages.remove(message)
-                            message = None
+                    if chk_msg(message) and named_sockets[reader] == message.name_to:
+                        send_message(message.message, reader)
+                        messages.remove(message)
+                        message = None
 
 
 
@@ -146,8 +145,6 @@ def lookup(mess):
 
 
 def get_names(mess):
-    name_from = None
-    name_to = None
     print('mess', mess)
     name_from = lookup(mess)
     name_to = mess.get('to')
@@ -179,19 +176,15 @@ def send_message(message, sock):
     return True
 
 
-
-
-
-
-# def send_message(message, messages, reader):
-#     if message.name_to
-
 class Message:
     def __init__(self, sock, name_from, name_to, message):
         self.sock = sock
         self.name_from = name_from
         self.name_to = name_to
         self.message = message
+
+IP = get_IP()
+print('IP адрес сервера: ', IP)
 
 r_thr = ReadMessages()
 w_thr = WriteMessages()
