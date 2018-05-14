@@ -4,50 +4,74 @@ import json
 import time
 from threading import Thread
 import alchemy
+import s_actions
+from queue import Queue
+import mongo_DB
 
 # IP = '127.0.0.1'
 
-all_clients = []
-messages = []
-named_sockets = {}
-writers = []
-readers = []
-
-def get_IP():
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    return (s.getsockname()[0])
 
 
-def create_serv_sock():
-    PORT = 7777
-    serv_sock = socket.socket(family=socket.AF_INET, type = socket.SOCK_STREAM, proto=0)
-    serv_sock.setblocking(0)
-    serv_sock.bind((IP, PORT))
-    serv_sock.listen(5)
-    serv_sock.settimeout(0.2)
-    return serv_sock
 
+
+class Server:
+    readers = []
+    writers = []
+    all_clients = []
+    named_sockets = {}
+    messages = Queue()
+    def __init__(self):
+        self.PORT = 7777
+        self.IP = self.get_IP()
+        self.sock = self.create_serv_sock()
+
+
+
+    def get_name_socket(self, socket):
+        if socket in Server.named_sockets: return Server.named_sockets[socket]
+
+    def get_IP(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        return (s.getsockname()[0])
+
+    def create_serv_sock(self):
+        serv_sock = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM, proto=0)
+        serv_sock.setblocking(0)
+        serv_sock.bind((self.IP, self.PORT))
+        serv_sock.listen(5)
+        serv_sock.settimeout(0.2)
+        return serv_sock
+
+
+class Message:
+    def __init__(self, sock, name_from, message, name_to=None):
+        self.sock = sock
+        self.name_from = name_from
+        self.name_to = name_to
+        self.message = message
 
 
 class ChkClients(Thread):
 
-    def __init__(self):
+    def __init__(self, serv):
         super().__init__()
-        self.readers = []
-        self.writers = []
+        self.serv = serv
 
     def run(self):
         while True:
             try:
-                conn, addr = create_serv_sock().accept()
+                conn, addr = self.serv.sock.accept()
             except OSError:
                 pass
             else:
-                all_clients.append(conn)
+                Server.all_clients.append(conn)
             finally:
-                if all_clients:
-                    self.writers, self.readers, self.errors = select.select(all_clients, all_clients, [])
+                if Server.all_clients:
+                    Server.writers, Server.readers, Server.errors = select.select(Server.all_clients, Server.all_clients, [])
+
+
+
 
 
 
@@ -57,23 +81,21 @@ class ReadMessages(Thread):
         super().__init__()
 
     def run(self):
-        global messages
-        global named_sockets
         while True:
-            for writer in chk.writers:
-                try:
-                    mess = get_message(writer)
-                except Exception as e:
-                    print('get_message error', e)
-                else:
-                    if mess is not None:
-                        name_from, name_to = get_names(mess)
-                        print('имя от кого ', name_from)
-                        if name_from:
-                            named_sockets[writer] = name_from
-                            # print(named_sockets)
-                            message = Message(writer, name_from, name_to, mess)
-                            messages.append(message)
+            for writer in Server.writers:
+                mess = get_message(writer)
+                if mess:
+                    name_from, name_to = get_names(mess)
+                    mess['status'] = 'False'
+                    mongo_DB.add_message(mess)
+                    print(mongo_DB.messages.find())
+                    if name_from and not name_to:
+                        Server.named_sockets[writer] = name_from
+                    message = Message(writer, name_from, mess, name_to)
+                    Server.messages.put(message)
+
+
+
 
 
 class WriteMessages(Thread):
@@ -81,75 +103,14 @@ class WriteMessages(Thread):
     def __init__(self):
         super().__init__()
 
+
     def run(self):
-        global messages
         while True:
-            for reader in chk.readers:
+            for reader in Server.readers:
+                message_obj = Server.messages.get()
+                action = message_obj.message['action'] #Смотрим, какой тип сообщения прилетел
+                s_actions.actions[action](message_obj, reader, Server.named_sockets, Server.messages)# Выполняем действия, которые необходимо сделать
 
-                for message in messages:
-                    if chk_presence(message):
-                        login, password = get_username_pass(message)
-                        alchemy.chk_DB()
-                        alchemy.chk_uexist_DB(login, password)
-                        responce = create_responce(message, login)
-                        send_message(responce, reader)
-                        messages.remove(message)
-                        message = None
-                    if chk_msg(message) and named_sockets[reader] == message.name_to:
-                        send_message(message.message, reader)
-                        messages.remove(message)
-                        message = None
-
-
-
-def chk_msg(message):
-    if message:
-        if message.message['action'] == 'msg':
-            a = True
-        else:
-            a = False
-        return a
-
-
-def get_username_pass(message):
-    login = message.message['user']['account_name']
-    password = message.message['user']['password']
-    return login, password
-
-
-def create_responce(message, login):
-    responce = {'responce': 200,
-                'time': time.time(),
-                'to': login
-                }
-    return responce
-
-
-def chk_presence(message):
-    if message:
-        if message.message['action'] == 'presence':
-            a = True
-        else:
-            a = False
-        return a
-
-
-def get_name_socket(socket):
-    if socket in named_sockets: return named_sockets[socket]
-
-
-def lookup(mess):
-    if 'user' in mess:
-        return mess['user'].get('account_name')
-    return mess.get('from')
-
-
-def get_names(mess):
-    print('mess', mess)
-    name_from = lookup(mess)
-    name_to = mess.get('to')
-    print(name_from, name_to)
-    return name_from, name_to
 
 
 def get_message(sock):
@@ -170,28 +131,34 @@ def get_message(sock):
                 return mess
 
 
-def send_message(message, sock):
-    data = json.dumps(message).encode()
-    sock.sendall(data)
-    return True
+def lookup(mess):
+    if 'user' in mess:
+        return mess['user'].get('account_name')
+    return mess.get('from')
 
 
-class Message:
-    def __init__(self, sock, name_from, name_to, message):
-        self.sock = sock
-        self.name_from = name_from
-        self.name_to = name_to
-        self.message = message
+def get_names(mess):
+    print('mess', mess)
+    name_from = lookup(mess)
+    name_to = mess.get('to')
+    print(name_from, name_to)
+    return name_from, name_to
 
-IP = get_IP()
-print('IP адрес сервера: ', IP)
 
-r_thr = ReadMessages()
-w_thr = WriteMessages()
-chk = ChkClients()
-chk.start()
-r_thr.start()
-w_thr.start()
+
+
+
+
+if __name__ == '__main__':
+    server = Server()
+    print('IP адрес сервера: ', server.IP)
+
+    r_thr = ReadMessages()
+    w_thr = WriteMessages()
+    chk = ChkClients(server)
+    chk.start()
+    r_thr.start()
+    w_thr.start()
 
 
 
