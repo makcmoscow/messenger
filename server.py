@@ -87,11 +87,11 @@ class ReadMessages(Thread):
                 if mess:
                     name_from, name_to = get_names(mess)
                     mess['status'] = 'False'
-                    mongo_DB.add_message(mess)
                     if name_from and not name_to:
                         Server.named_sockets[writer] = name_from
-                    message = Message(writer, name_from, mess, name_to)
-                    Server.messages.put(message)
+                    mongo_DB.add_message(mess)
+                    # message = Message(writer, name_from, mess, name_to)
+                    # Server.messages.put(message)
 
 
 
@@ -106,9 +106,14 @@ class WriteMessages(Thread):
     def run(self):
         while True:
             for reader in Server.readers:
-                message_obj = Server.messages.get()
-                action = message_obj.message['action'] #Смотрим, какой тип сообщения прилетел
-                s_actions.actions[action](message_obj, reader, Server.named_sockets)# Выполняем действия, которые необходимо сделать
+                # message_obj = Server.messages.get()
+                message_list = mongo_DB.unsended_messages()
+                if message_list:
+                    for unsended_message in message_list:
+                        if unsended_message:
+                            action = unsended_message['action'] #Смотрим, какой тип сообщения прилетел
+                            s_actions.actions[action](unsended_message, reader, Server.named_sockets)# Выполняем действия, которые необходимо сделать
+                            mongo_DB.update_sended(unsended_message)
 
 
 

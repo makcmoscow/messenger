@@ -5,19 +5,21 @@ import json
 import mongo_DB
 
 def presence(message, sock, named_sockets):
-    login, password = get_username_pass(message)
+    login = message['user']['account_name']
+    password = message['user']['password']
     # alchemy.chk_DB()
     # alchemy.chk_uexist_DB(login, password)
     responce = create_responce(message, login)
-    send_message(responce, sock)
+    if named_sockets[sock] == login:
+        send_message(responce, sock)
 
 
 
 def msg(message, sock, named_sockets):
-    print('name in message', message.name_to)
+    print('name in message', message['to'])
     print('named socked and name: ', named_sockets, named_sockets[sock])
-    if named_sockets[sock] == message.name_to:
-        send_message(message.message, sock)
+    if named_sockets[sock] == message['to']:
+        send_message(message['message'], sock)
 
 
 
