@@ -1,9 +1,9 @@
 from pymongo import MongoClient
 
 client = MongoClient()
-db = client.database
+db = client.db
 messages = db.messages
-
+print(messages)
 
 def add_message(message):
     messages.insert_one(message)

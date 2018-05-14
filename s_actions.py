@@ -16,7 +16,7 @@ def presence(message, sock, named_sockets):
 def msg(message, sock, named_sockets):
     print('name in message', message.name_to)
     print('named socked and name: ', named_sockets, named_sockets[sock])
-    if named_sockets[sock] != message.name_to:
+    if named_sockets[sock] == message.name_to:
         send_message(message.message, sock)
 
 
