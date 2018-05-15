@@ -6,19 +6,20 @@ import mongo_DB
 import copy
 
 def presence(message, sock, named_sockets):
-    login = message['user']['account_name']
-    password = message['user']['password']
-    auth = mongo_DB.autentification(login, password)
-    if auth[1]:
-        print(auth[0])
+    login = named_sockets[sock]
+    mess_login = message['user']['account_name']
+    if mess_login == login:
         responce = create_responce(message, login)
         send_message(responce, sock)
-        return True
-    else:
-        print(auth[0])
-        print('login {} or password {} wrong'.format(login, password))
-        return False
-    # if named_sockets[sock] == login:
+
+
+    # mess_password = message['user']['password']
+    # auth_is_ok = mongo_DB.autentification(login, password)
+    # if auth_is_ok:
+    # else:
+    # print('login {} or password {} wrong'.format(login, password))
+    # return auth_is_ok
+
 
 
 
@@ -26,9 +27,6 @@ def presence(message, sock, named_sockets):
 
 
 def msg(message, sock, named_sockets):
-    # print('name in message', message['to'])
-    # print('named socked: ', named_sockets)
-    # print('His name: ', named_sockets[sock])
     if named_sockets[sock] == message['to']:
         send_message(message, sock)
         return True
@@ -60,9 +58,11 @@ def send_message(message, sock):
     data = json.dumps(new_message).encode()
     sock.sendall(data)
     return True
-# action = message['action']
 
-# c = actions[action]()
-# print(c)
-# actions[action]
+def handler_unsended_mess(message, reader, named_sockets):
+    if message:
+        action = message['action']
+        actions[action](message, reader, named_sockets)
+        mongo_DB.update_sended(message)
+
 

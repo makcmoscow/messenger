@@ -70,18 +70,22 @@ async def WriteMessages():
             message_list = mongo_DB.unsended_messages()
             if message_list:
                 for unsended_message in message_list:
-                    if unsended_message:
-                        action = unsended_message['action'] #Смотрим, какой тип сообщения прилетел
-                        result = s_actions.actions[action](unsended_message, reader, Server.named_sockets)# Выполняем действия, которые необходимо сделать
-                        if result and (action=='msg'):
-                            print('update sended')
-                            mongo_DB.update_sended(unsended_message)
-
-                        elif result and (action=='presence'):
-                            print('it was presence')
-                        else:
-                            print('action ', action)
-                        result, action = None
+                    print('unsenden_message', unsended_message)
+                    s_actions.handler_unsended_mess(unsended_message, reader, Server.named_sockets)
+                    # print(x)
+                    #
+                    # if unsended_message:
+                    #     action = unsended_message['action'] #Смотрим, какой тип сообщения прилетел
+                    #     result = s_actions.actions[action](unsended_message, reader, Server.named_sockets)# Выполняем действия, которые необходимо сделать
+                    #     if result and (action=='msg'):
+                    #         print('update sended')
+                    #         mongo_DB.update_sended(unsended_message)
+                    #
+                    #     elif result and (action=='presence'):
+                    #         print('it was presence')
+                    #     else:
+                    #         print('action ', action)
+                    #     result, action = None
 
         await asyncio.sleep(0.1)
 
@@ -119,7 +123,7 @@ def get_names(mess):
 
 def mainloop(serv):
     eloop = asyncio.get_event_loop()
-    tasks = [eloop.create_task(ReadMessages()), eloop.create_task(WriteMessages()), eloop.create_task(ChkClients(serv))]
+    tasks = [eloop.create_task(ChkClients(serv)), eloop.create_task(ReadMessages()), eloop.create_task(WriteMessages())]
     wait_tasks = asyncio.wait(tasks)
     eloop.run_until_complete(wait_tasks)
 
