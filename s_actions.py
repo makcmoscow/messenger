@@ -3,6 +3,7 @@ import alchemy
 import time
 import json
 import mongo_DB
+import copy
 
 def presence(message, sock, named_sockets):
     login = message['user']['account_name']
@@ -17,9 +18,11 @@ def presence(message, sock, named_sockets):
 
 def msg(message, sock, named_sockets):
     print('name in message', message['to'])
-    print('named socked and name: ', named_sockets, named_sockets[sock])
+    print('named socked: ', named_sockets)
+    print('His name: ', named_sockets[sock])
     if named_sockets[sock] == message['to']:
-        send_message(message['message'], sock)
+        print('MEEESSSAAAAGE', type(message))
+        send_message(message, sock)
 
 
 
@@ -41,7 +44,10 @@ def create_responce(message, login):
 
 def send_message(message, sock):
     print('message', message)
-    data = json.dumps(message).encode()
+    new_message = copy.copy(message)
+    if '_id' in message:
+        new_message.pop('_id')
+    data = json.dumps(new_message).encode()
     sock.sendall(data)
     return True
 # action = message['action']

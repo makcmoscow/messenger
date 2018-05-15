@@ -44,6 +44,7 @@ class ReadThread(Thread):
         while True:
             try:
                 mess = get_message(conn)
+                print(mess)
                 if mess and 'message' in mess:
                     print()
                     print('message from ', mess['from'], '>>:  ', mess['message'])
