@@ -112,9 +112,6 @@ def get_names(mess):
 
 def mainloop(serv):
     eloop = asyncio.get_event_loop()
-    # eloop.create_task(ReadMessages())
-    # eloop.create_task(WriteMessages())
-    # eloop.create_task(ChkClients(serv))
     tasks = [eloop.create_task(ReadMessages()), eloop.create_task(WriteMessages()), eloop.create_task(ChkClients(serv))]
     wait_tasks = asyncio.wait(tasks)
     eloop.run_until_complete(wait_tasks)
@@ -126,16 +123,4 @@ if __name__ == '__main__':
     server = Server()
     print('IP адрес сервера: ', server.IP)
     mainloop(server)
-
-
-
-    # r_thr = ReadMessages()
-    # w_thr = WriteMessages()
-    # chk = ChkClients(server)
-    # chk.start()
-    # r_thr.start()
-    # w_thr.start()
-
-
-
 
