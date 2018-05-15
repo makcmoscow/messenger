@@ -8,13 +8,20 @@ import copy
 def presence(message, sock, named_sockets):
     login = message['user']['account_name']
     password = message['user']['password']
-    # alchemy.chk_DB()
-    # alchemy.chk_uexist_DB(login, password)
-    responce = create_responce(message, login)
-    if named_sockets[sock] == login:
+    auth = mongo_DB.autentification(login, password)
+    if auth[1]:
+        print(auth[0])
+        responce = create_responce(message, login)
         send_message(responce, sock)
         return True
-    return False
+    else:
+        print(auth[0])
+        print('login {} or password {} wrong'.format(login, password))
+        return False
+    # if named_sockets[sock] == login:
+
+
+
 
 
 

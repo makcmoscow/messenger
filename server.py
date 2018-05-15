@@ -73,8 +73,15 @@ async def WriteMessages():
                     if unsended_message:
                         action = unsended_message['action'] #Смотрим, какой тип сообщения прилетел
                         result = s_actions.actions[action](unsended_message, reader, Server.named_sockets)# Выполняем действия, которые необходимо сделать
-                        if result:
+                        if result and (action=='msg'):
+                            print('update sended')
                             mongo_DB.update_sended(unsended_message)
+
+                        elif result and (action=='presence'):
+                            print('it was presence')
+                        else:
+                            print('action ', action)
+                        result, action = None
 
         await asyncio.sleep(0.1)
 
