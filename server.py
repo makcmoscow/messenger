@@ -2,30 +2,19 @@ import socket
 import select
 import json
 import time
-from threading import Thread
-import alchemy
 import s_actions
-from queue import Queue
 import mongo_DB
-
-# IP = '127.0.0.1'
-
-
-
-
+import asyncio
 
 class Server:
     readers = []
     writers = []
     all_clients = []
     named_sockets = {}
-    messages = Queue()
     def __init__(self):
         self.PORT = 7777
         self.IP = self.get_IP()
         self.sock = self.create_serv_sock()
-
-
 
     def get_name_socket(self, socket):
         if socket in Server.named_sockets: return Server.named_sockets[socket]
@@ -44,76 +33,50 @@ class Server:
         return serv_sock
 
 
-class Message:
-    def __init__(self, sock, name_from, message, name_to=None):
-        self.sock = sock
-        self.name_from = name_from
-        self.name_to = name_to
-        self.message = message
-
-
-class ChkClients(Thread):
-
-    def __init__(self, serv):
-        super().__init__()
-        self.serv = serv
-
-    def run(self):
-        while True:
-            try:
-                conn, addr = self.serv.sock.accept()
-            except OSError:
-                pass
-            else:
-                Server.all_clients.append(conn)
-            finally:
-                if Server.all_clients:
-                    Server.writers, Server.readers, Server.errors = select.select(Server.all_clients, Server.all_clients, [])
+async def ChkClients(serv):
+    while True:
+        try:
+            conn, addr = serv.sock.accept()
+        except OSError:
+            await asyncio.sleep(0.1)
+        else:
+            Server.all_clients.append(conn)
+        finally:
+            if Server.all_clients:
+                Server.writers, Server.readers, Server.errors = select.select(Server.all_clients, Server.all_clients, [])
 
 
 
 
 
 
-class ReadMessages(Thread):
+async def ReadMessages():
+    while True:
+        for writer in Server.writers:
+            mess = get_message(writer)
+            if mess:
+                name_from, name_to = get_names(mess)
+                mess['status'] = 'False'
+                if name_from and not name_to:
+                    Server.named_sockets[writer] = name_from
+                mongo_DB.add_message(mess)
+                print('message {} was added to database'.format(mess))
+        await asyncio.sleep(0.1)
 
-    def __init__(self):
-        super().__init__()
-
-    def run(self):
-        while True:
-            for writer in Server.writers:
-                mess = get_message(writer)
-                if mess:
-                    name_from, name_to = get_names(mess)
-                    mess['status'] = 'False'
-                    if name_from and not name_to:
-                        Server.named_sockets[writer] = name_from
-                    mongo_DB.add_message(mess)
-                    # message = Message(writer, name_from, mess, name_to)
-                    # Server.messages.put(message)
-
-
-
-
-
-class WriteMessages(Thread):
-
-    def __init__(self):
-        super().__init__()
-
-
-    def run(self):
-        while True:
-            for reader in Server.readers:
-                # message_obj = Server.messages.get()
-                message_list = mongo_DB.unsended_messages()
-                if message_list:
-                    for unsended_message in message_list:
-                        if unsended_message:
-                            action = unsended_message['action'] #Смотрим, какой тип сообщения прилетел
-                            s_actions.actions[action](unsended_message, reader, Server.named_sockets)# Выполняем действия, которые необходимо сделать
+async def WriteMessages():
+    while True:
+        for reader in Server.readers:
+            # message_obj = Server.messages.get()
+            message_list = mongo_DB.unsended_messages()
+            if message_list:
+                for unsended_message in message_list:
+                    if unsended_message:
+                        action = unsended_message['action'] #Смотрим, какой тип сообщения прилетел
+                        result = s_actions.actions[action](unsended_message, reader, Server.named_sockets)# Выполняем действия, которые необходимо сделать
+                        if result:
                             mongo_DB.update_sended(unsended_message)
+
+        await asyncio.sleep(0.1)
 
 
 
@@ -129,10 +92,11 @@ def get_message(sock):
             jmess = jbmess.decode()
             mess = json.loads(jmess)
         finally:
-            if mess is None:
-                return None
-            else:
-                return mess
+            return mess or None
+            # if not mess:
+            #     return None
+            # else:
+            #     return mess
 
 
 def lookup(mess):
@@ -142,13 +106,18 @@ def lookup(mess):
 
 
 def get_names(mess):
-    print('mess', mess)
     name_from = lookup(mess)
     name_to = mess.get('to')
-    print(name_from, name_to)
     return name_from, name_to
 
-
+def mainloop(serv):
+    eloop = asyncio.get_event_loop()
+    # eloop.create_task(ReadMessages())
+    # eloop.create_task(WriteMessages())
+    # eloop.create_task(ChkClients(serv))
+    tasks = [eloop.create_task(ReadMessages()), eloop.create_task(WriteMessages()), eloop.create_task(ChkClients(serv))]
+    wait_tasks = asyncio.wait(tasks)
+    eloop.run_until_complete(wait_tasks)
 
 
 
@@ -156,13 +125,16 @@ def get_names(mess):
 if __name__ == '__main__':
     server = Server()
     print('IP адрес сервера: ', server.IP)
+    mainloop(server)
 
-    r_thr = ReadMessages()
-    w_thr = WriteMessages()
-    chk = ChkClients(server)
-    chk.start()
-    r_thr.start()
-    w_thr.start()
+
+
+    # r_thr = ReadMessages()
+    # w_thr = WriteMessages()
+    # chk = ChkClients(server)
+    # chk.start()
+    # r_thr.start()
+    # w_thr.start()
 
 
 

@@ -3,8 +3,7 @@ from pymongo import MongoClient
 client = MongoClient()
 db = client.db
 messages = db.messages
-for message in messages.find():
-    print(message)
+
 
 def add_message(message):
     messages.insert_one(message)

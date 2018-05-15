@@ -13,16 +13,19 @@ def presence(message, sock, named_sockets):
     responce = create_responce(message, login)
     if named_sockets[sock] == login:
         send_message(responce, sock)
+        return True
+    return False
 
 
 
 def msg(message, sock, named_sockets):
-    print('name in message', message['to'])
-    print('named socked: ', named_sockets)
-    print('His name: ', named_sockets[sock])
+    # print('name in message', message['to'])
+    # print('named socked: ', named_sockets)
+    # print('His name: ', named_sockets[sock])
     if named_sockets[sock] == message['to']:
-        print('MEEESSSAAAAGE', type(message))
         send_message(message, sock)
+        return True
+    return False
 
 
 
@@ -43,7 +46,7 @@ def create_responce(message, login):
     return responce
 
 def send_message(message, sock):
-    print('message', message)
+    # print('message', message)
     new_message = copy.copy(message)
     if '_id' in message:
         new_message.pop('_id')

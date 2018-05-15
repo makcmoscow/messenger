@@ -44,7 +44,6 @@ class ReadThread(Thread):
         while True:
             try:
                 mess = get_message(conn)
-                print(mess)
                 if mess and 'message' in mess:
                     print()
                     print('message from ', mess['from'], '>>:  ', mess['message'])
@@ -56,7 +55,7 @@ class ReadThread(Thread):
 @log
 def connect(IP, PORT):
     conn = socket.create_connection((IP, int(PORT)), 10)
-    logger.info('123')
+    logger.info('connected')
     return conn
 
 @log
@@ -84,7 +83,7 @@ def get_message(conn):
     try:
         mess = json.loads(jmess)
     except Exception as e:
-        pass
+        print('error while json in get_message', e)
     else:
         return mess
 
