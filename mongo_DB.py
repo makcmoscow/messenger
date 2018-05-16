@@ -41,5 +41,10 @@ def found_user(login):
     for user in users.find({'login':str(login)}):
         print(user)
         return user
+
+
+if __name__ == '__main__':
+    mes = messages.find({})
+    print(mes)
 # users.insert_one({'login': 111, 'password': 111})
 # autentification('111', 111)
