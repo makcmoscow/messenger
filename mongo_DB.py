@@ -18,33 +18,49 @@ def unsended_messages():
 
 def update_sended(sended_message):
     id = sended_message['_id']
-    messages.update({'_id':id}, {'status':'True'})
+    messages.update({'_id':id}, {'$set':{'status':'True'}})
 
-def autentification(login, password):
+def autentication(login, password):
     user = found_user(login)
     if user:
-        if str(user['login'])==str(login) and str(user['password']) == str(password):
+        if user['login']==login and user['password'] == password:
             a = True
-        elif str(user['login'])==str(login):
+        elif user['login']==login:
             a = False
-        else:
-            user = {'login': str(login), 'password': str(password)}
-            users.insert_one(user)
-            a = True
         return a
     else:
-        user = {'login': str(login), 'password': str(password)}
+        user = {'login': login, 'password': password}
         users.insert_one(user)
-        a = ['user just added', True]#todo reaction if user doesn't exist in database
+        a = True#todo reaction if user doesn't exist in database
+        return a
 
 def found_user(login):
-    for user in users.find({'login':str(login)}):
+    for user in users.find({'login':login}):
         print(user)
         return user
 
+def show_users():
+    for user in users.find({}):
+        print(user)
+
+def show_messages():
+    for message in messages.find({}):
+        print(message)
+
+
 
 if __name__ == '__main__':
-    mes = messages.find({})
-    print(mes)
+    show_messages()
+
+
+    # mes = messages.find({'status':'True'})
+    # for message in mes:
+    #     print(message)
+        # messages.remove(message)
+        # print('{} removed'.format(message))
+
+
+
+
 # users.insert_one({'login': 111, 'password': 111})
 # autentification('111', 111)

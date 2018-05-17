@@ -17,16 +17,17 @@ log = Log(logger)
 
 class User:
     def __init__(self):
-        self.login = input('Enter your login ')
-        self.password = input('Enter your password ')
+        self.login = str(input('Enter your login '))
+        self.password = str(input('Enter your password '))
 
 class WriteThread(Thread):
     def __init__(self):
         super().__init__()
+
     def run(self):
         while True:
-            name_to = input('Кому? ')
-            mess = input('Введите ваше сообщение: ')
+            name_to = str(input('Кому? '))
+            mess = str(input('Введите ваше сообщение: '))
             try:
                 a = send_message(conn, name_to, mess)
             except OSError:
@@ -50,6 +51,10 @@ class ReadThread(Thread):
             except OSError as e:
                 pass
 
+
+def send_auth(conn):
+    auth = messages.f_auth()
+    conn.sendall(make_sendable(auth))
 
 
 @log
@@ -115,6 +120,10 @@ wr1 = WriteThread()
 wr1.start()
 r1 = ReadThread()
 r1.start()
+# send_presence(conn)
+# send_auth(conn)
+
+
 
 # while 1:
 #     try:

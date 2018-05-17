@@ -6,6 +6,16 @@ import s_actions
 import mongo_DB
 import asyncio
 
+class Client:
+    def __init__(self, socket):
+        self.socket = socket
+        self.login = None
+        self.auth = None
+        self.password = False
+
+
+
+
 class Server:
     readers = []
     writers = []
@@ -37,13 +47,14 @@ async def ChkClients(serv):
     while True:
         try:
             conn, addr = serv.sock.accept()
+            new_client = Client(conn)
         except OSError:
             await asyncio.sleep(0.1)
         else:
-            Server.all_clients.append(conn)
-        finally:
-            if Server.all_clients:
-                Server.writers, Server.readers, Server.errors = select.select(Server.all_clients, Server.all_clients, [])
+            Server.all_clients.append(new_client)
+        # finally:
+        #     if Server.all_clients:
+        #         Server.writers, Server.readers, Server.errors = select.select(Server.all_clients, Server.all_clients, [])
 
 
 
@@ -52,41 +63,31 @@ async def ChkClients(serv):
 
 async def ReadMessages():
     while True:
-        for writer in Server.writers:
-            mess = get_message(writer)
+        # for writer in Server.writers:
+        #     mess = get_message(writer)
+        for client in Server.all_clients:
+            mess = get_message(client.socket)
             if mess:
                 name_from, name_to = get_names(mess)
+                if not client.login:
+                    client.login = name_from
+                    print('client {} now has name'.format(client.login))
                 mess['status'] = 'False'
-                if name_from and not name_to:
-                    Server.named_sockets[writer] = name_from
                 mongo_DB.add_message(mess)
                 print('message {} was added to database'.format(mess))
         await asyncio.sleep(0.1)
 
 async def WriteMessages():
     while True:
-        for reader in Server.readers:
-            # message_obj = Server.messages.get()
+        for client in Server.all_clients:
+        # for reader in Server.readers:
             message_list = mongo_DB.unsended_messages()
             if message_list:
                 for unsended_message in message_list:
                     print('unsenden_message', unsended_message)
-                    s_actions.handler_unsended_mess(unsended_message, reader, Server.named_sockets)
-                    # print(x)
-                    #
-                    # if unsended_message:
-                    #     action = unsended_message['action'] #Смотрим, какой тип сообщения прилетел
-                    #     result = s_actions.actions[action](unsended_message, reader, Server.named_sockets)# Выполняем действия, которые необходимо сделать
-                    #     if result and (action=='msg'):
-                    #         print('update sended')
-                    #         mongo_DB.update_sended(unsended_message)
-                    #
-                    #     elif result and (action=='presence'):
-                    #         print('it was presence')
-                    #     else:
-                    #         print('action ', action)
-                    #     result, action = None
-
+                    # s_actions.handler_unsended_mess(unsended_message, reader, Server.named_sockets)
+                    s_actions.handler_unsended_mess(unsended_message, client)
+                    message_list=[]
         await asyncio.sleep(0.1)
 
 
