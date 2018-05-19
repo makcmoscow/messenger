@@ -2,8 +2,8 @@ from time import ctime
 
 class Message:
     def __init__(self, login, password):
-        self.login = login
-        self.password = password
+        self.login = str(login)
+        self.password = str(password)
 
     def f_presence(self):
         presence = {

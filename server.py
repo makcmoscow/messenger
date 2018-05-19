@@ -6,6 +6,8 @@ import s_actions
 import mongo_DB
 import asyncio
 
+
+
 class Client:
     def __init__(self, socket):
         self.socket = socket
@@ -13,12 +15,7 @@ class Client:
         self.auth = None
         self.password = False
 
-
-
-
 class Server:
-    readers = []
-    writers = []
     all_clients = []
     named_sockets = {}
     def __init__(self):
@@ -87,7 +84,7 @@ async def WriteMessages():
                     print('unsenden_message', unsended_message)
                     # s_actions.handler_unsended_mess(unsended_message, reader, Server.named_sockets)
                     s_actions.handler_unsended_mess(unsended_message, client)
-                    message_list=[]
+                    # message_list=[]
         await asyncio.sleep(0.1)
 
 
